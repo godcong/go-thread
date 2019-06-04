@@ -3,26 +3,31 @@ package thread
 import (
 	"context"
 	"github.com/google/uuid"
+	"time"
 )
 
 type Thread struct {
-	id     string
-	ctx    context.Context
-	cancel context.CancelFunc
-	run    Runnable
+	interval time.Duration
+	id       string
+	ctx      context.Context
+	cancel   context.CancelFunc
+	run      Runnable
 }
 
 func (thread *Thread) Start() {
 	thread.ctx, thread.cancel = context.WithCancel(context.Background())
 	go func() {
-		select {
-		case <-thread.ctx.Done():
-			return
-		default:
-			e := thread.run()
-			if e != nil {
-				panic(e)
+		for {
+			select {
+			case <-thread.ctx.Done():
+				return
+			default:
+				e := thread.run()
+				if e != nil {
+					panic(e)
+				}
 			}
+			time.Sleep(thread.interval)
 		}
 	}()
 }
@@ -40,7 +45,8 @@ func New(run Runnable) *Thread {
 		panic("must input an runnable function")
 	}
 	return &Thread{
-		id:  uuid.New().String(),
-		run: run,
+		interval: 300,
+		id:       uuid.New().String(),
+		run:      run,
 	}
 }
