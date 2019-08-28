@@ -18,8 +18,8 @@ const DefaultInterval = 30 * time.Second
 // Runner ...
 type Runner interface {
 	Runnable
-	BeforeRun(thread Threader)
-	AfterRun(thread Threader)
+	BeforeRun(manager Manager)
+	AfterRun(manager Manager)
 }
 
 // Basic ...
@@ -31,6 +31,7 @@ type Basic interface {
 
 // NoStatusThreader ...
 type NoStatusThreader interface {
+	Threader
 	State() State
 	SetState(state State)
 	Done() <-chan bool
@@ -74,13 +75,23 @@ type PushFunc func(interface{})
 
 // Thread ...
 type Thread struct {
-	Threader
+	Manager
 	id       string
 	interval time.Duration
 	state    *int32
 	done     chan bool
 	cb       chan interface{}
 	CallAble
+}
+
+// SetInterval ...
+func (t *Thread) SetInterval(duration time.Duration) {
+	t.interval = duration
+}
+
+// Interval ...
+func (t *Thread) Interval() time.Duration {
+	return t.interval
 }
 
 // Finished ...
@@ -131,12 +142,12 @@ func (t *Thread) Push(v interface{}) error {
 }
 
 // BeforeRun ...
-func (t *Thread) BeforeRun(thread Threader) {
-	t.Threader = thread
+func (t *Thread) BeforeRun(manager Manager) {
+	t.Manager = manager
 }
 
 // AfterRun ...
-func (t *Thread) AfterRun(thread Threader) {
+func (t *Thread) AfterRun(manager Manager) {
 }
 
 // State ...

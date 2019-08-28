@@ -22,7 +22,9 @@ type Manage struct {
 
 // Start ...
 func (m *Manage) Start() {
-	panic("implement me")
+	for i := range m.threaders {
+		m.threaders[i].BeforeRun(m)
+	}
 }
 
 // Wait ...
