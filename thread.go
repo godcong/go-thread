@@ -6,10 +6,14 @@ import (
 	"time"
 
 	"github.com/godcong/go-trait"
+	"github.com/google/uuid"
 	"golang.org/x/xerrors"
 )
 
 var log = trait.NewZapSugar()
+
+// DefaultInterval ...
+const DefaultInterval = 30 * time.Second
 
 // Runner ...
 type Runner interface {
@@ -20,7 +24,13 @@ type Runner interface {
 
 // Basic ...
 type Basic interface {
+	SetInterval(duration time.Duration)
+	Interval() time.Duration
 	ID() string
+}
+
+// NoStatusThreader ...
+type NoStatusThreader interface {
 	State() State
 	SetState(state State)
 	Done() <-chan bool
@@ -32,6 +42,11 @@ type Threader interface {
 	Runner
 	Basic
 	Pusher
+}
+
+// CallAble ...
+type CallAble interface {
+	Call(*Thread, interface{}) error
 }
 
 // Runnable ...
@@ -54,11 +69,6 @@ const (
 	StateStop
 )
 
-// CallAble ...
-type CallAble interface {
-	Call(*Thread, interface{}) error
-}
-
 // PushFunc ...
 type PushFunc func(interface{})
 
@@ -67,11 +77,10 @@ type Thread struct {
 	Threader
 	id       string
 	interval time.Duration
-	push     PushFunc
 	state    *int32
 	done     chan bool
-	cb       chan CallAble
-	call     CallAble
+	cb       chan interface{}
+	CallAble
 }
 
 // Finished ...
@@ -92,7 +101,7 @@ ThreadEnd:
 				break ThreadEnd
 			}
 			t.SetState(StateRunning)
-			e := cb.Call(t)
+			e := t.Call(t, cb)
 			if e != nil {
 				log.Error(e)
 			}
@@ -112,10 +121,10 @@ func (t *Thread) SetState(state State) {
 
 // Push ...
 func (t *Thread) Push(v interface{}) error {
-	if t.push != nil {
-		go func(p PushFunc, v interface{}) {
-			p(v)
-		}(t.push, v)
+	if v != nil {
+		go func(cb chan<- interface{}, v interface{}) {
+			cb <- v
+		}(t.cb, v)
 		return nil
 	}
 	return xerrors.New("null push function")
@@ -145,12 +154,14 @@ func (t *Thread) Done() <-chan bool {
 	return t.done
 }
 
-// NewThread ...
-func NewThread(call CallAble) *Thread {
+// NewThreader ...
+func NewThreader(call CallAble) Threader {
 	state := int32(StateWaiting)
 	return &Thread{
-		state: (*int32)(&state),
-		done:  make(chan bool),
-		call:  call,
+		id:       uuid.New().String(),
+		interval: DefaultInterval,
+		state:    &state,
+		done:     make(chan bool),
+		CallAble: call,
 	}
 }
