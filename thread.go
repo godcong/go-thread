@@ -2,6 +2,7 @@ package thread
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/atomic"
 	"golang.org/x/xerrors"
@@ -26,9 +27,10 @@ type PushFunc func(interface{}) error
 // Thread ...
 type Thread struct {
 	Threader
-	push  PushFunc
-	state *atomic.Int32
-	done  chan bool
+	interval time.Duration
+	push     PushFunc
+	state    *atomic.Int32
+	done     chan bool
 }
 
 // Finished ...
@@ -38,8 +40,28 @@ func (t *Thread) Finished() {
 }
 
 // Run ...
-func (t *Thread) Run(context.Context) {
-	panic("implement me")
+func (t *Thread) Run(ctx context.Context) {
+ThreadEnd:
+	for {
+		select {
+		case <-ctx.Done():
+			break ThreadEnd
+		case cb := <-t.cb:
+			if cb == nil {
+				break ThreadEnd
+			}
+			t.SetState(StateRunning)
+			e := cb.Call(m)
+			if e != nil {
+				log.Error(e)
+			}
+		case <-time.After(t.interval):
+			log.Info("info time out")
+			m.SetState(StateWaiting)
+		}
+	}
+	close(m.cb)
+	m.Finished()
 }
 
 // SetState ...
