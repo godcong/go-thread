@@ -2,9 +2,8 @@ package thread
 
 import (
 	"context"
-	"time"
-
 	"sync/atomic"
+	"time"
 
 	"github.com/godcong/go-trait"
 	"golang.org/x/xerrors"
@@ -12,16 +11,16 @@ import (
 
 var log = trait.NewZapSugar()
 
-// ThreadRun ...
-type ThreadRun interface {
+// Runner ...
+type Runner interface {
 	Runnable
-	Pusher
 	BeforeRun(thread Threader)
 	AfterRun(thread Threader)
 }
 
-// ThreadBase ...
-type ThreadBase interface {
+// Basic ...
+type Basic interface {
+	ID() string
 	State() State
 	SetState(state State)
 	Done() <-chan bool
@@ -30,8 +29,9 @@ type ThreadBase interface {
 
 // Threader ...
 type Threader interface {
-	ThreadRun
-	ThreadBase
+	Runner
+	Basic
+	Pusher
 }
 
 // Runnable ...
@@ -54,6 +54,7 @@ const (
 	StateStop
 )
 
+// CallAble ...
 type CallAble interface {
 	Call(*Thread, interface{}) error
 }
@@ -134,6 +135,7 @@ func (t *Thread) State() State {
 	return State(atomic.LoadInt32(t.state))
 }
 
+// ID ...
 func (t *Thread) ID() string {
 	return t.id
 }
