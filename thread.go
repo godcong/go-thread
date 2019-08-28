@@ -2,51 +2,71 @@ package thread
 
 import (
 	"context"
-	"github.com/google/uuid"
-	"time"
+
+	"go.uber.org/atomic"
+	"golang.org/x/xerrors"
 )
 
+type Threader interface {
+}
+
+// PushFunc ...
+type PushFunc func(interface{}) error
+
+// Thread ...
 type Thread struct {
-	interval time.Duration
-	id       string
-	ctx      context.Context
-	cancel   context.CancelFunc
-	run      Runnable
+	push  PushFunc
+	state *atomic.Int32
+	done  chan bool
 }
 
-func (thread *Thread) Start() {
-	thread.ctx, thread.cancel = context.WithCancel(context.Background())
-	go func() {
-		for {
-			select {
-			case <-thread.ctx.Done():
-				return
-			default:
-				e := thread.run()
-				if e != nil {
-					panic(e)
-				}
-			}
-			time.Sleep(thread.interval)
-		}
-	}()
+// Finished ...
+func (t *Thread) Finished() {
+	t.SetState(StateStop)
+	t.done <- true
 }
 
-func (thread *Thread) Stop() {
-	if thread.cancel != nil {
-		thread.cancel()
+// Run ...
+func (t *Thread) Run(context.Context) {
+	panic("implement me")
+}
+
+// SetState ...
+func (t *Thread) SetState(state State) {
+	t.state.Store(int32(state))
+}
+
+// Push ...
+func (t *Thread) Push(v interface{}) error {
+	if t.push != nil {
+		return t.push(v)
 	}
+	return xerrors.New("null push function")
 }
 
-type Runnable func() error
+// BeforeRun ...
+func (t *Thread) BeforeRun(seed Seeder) {
+	t.Seeder = seed
+}
 
-func New(run Runnable) *Thread {
-	if run == nil {
-		panic("must input an runnable function")
-	}
+// AfterRun ...
+func (t *Thread) AfterRun(seed Seeder) {
+}
+
+// State ...
+func (t *Thread) State() State {
+	return State(t.state.Load())
+}
+
+// Done ...
+func (t *Thread) Done() <-chan bool {
+	return t.done
+}
+
+// NewThread ...
+func NewThread() *Thread {
 	return &Thread{
-		interval: 300,
-		id:       uuid.New().String(),
-		run:      run,
+		state: atomic.NewInt32(int32(StateWaiting)),
+		done:  make(chan bool),
 	}
 }
