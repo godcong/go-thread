@@ -32,7 +32,6 @@ type Basic interface {
 
 // NoStatusThreader ...
 type NoStatusThreader interface {
-	Threader
 	State() State
 	SetState(state State)
 	Done() <-chan bool
@@ -41,6 +40,7 @@ type NoStatusThreader interface {
 
 // Threader ...
 type Threader interface {
+	NoStatusThreader
 	Runner
 	Basic
 	Pusher
