@@ -7,6 +7,16 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// State ...
+type State int
+
+// State ...
+const (
+	StateWaiting State = iota
+	StateRunning
+	StateStop
+)
+
 type Threader interface {
 }
 
@@ -15,6 +25,7 @@ type PushFunc func(interface{}) error
 
 // Thread ...
 type Thread struct {
+	Threader
 	push  PushFunc
 	state *atomic.Int32
 	done  chan bool
@@ -45,12 +56,12 @@ func (t *Thread) Push(v interface{}) error {
 }
 
 // BeforeRun ...
-func (t *Thread) BeforeRun(seed Seeder) {
-	t.Seeder = seed
+func (t *Thread) BeforeRun(thread Threader) {
+	t.Threader = thread
 }
 
 // AfterRun ...
-func (t *Thread) AfterRun(seed Seeder) {
+func (t *Thread) AfterRun(thread Threader) {
 }
 
 // State ...
