@@ -27,6 +27,7 @@ type Basic interface {
 	SetInterval(duration time.Duration)
 	Interval() time.Duration
 	ID() string
+	Manager() Manager
 }
 
 // NoStatusThreader ...
@@ -47,7 +48,7 @@ type Threader interface {
 
 // CallAble ...
 type CallAble interface {
-	Call(*Thread, interface{}) error
+	Call(Threader, interface{}) error
 }
 
 // Runnable ...
@@ -75,13 +76,18 @@ type PushFunc func(interface{})
 
 // Thread ...
 type Thread struct {
-	Manager
+	manager  Manager
 	id       string
 	interval time.Duration
 	state    *int32
 	done     chan bool
 	cb       chan interface{}
 	CallAble
+}
+
+// Manager ...
+func (t *Thread) Manager() Manager {
+	return t.manager
 }
 
 // SetInterval ...
@@ -143,7 +149,7 @@ func (t *Thread) Push(v interface{}) error {
 
 // BeforeRun ...
 func (t *Thread) BeforeRun(manager Manager) {
-	t.Manager = manager
+	t.manager = manager
 }
 
 // AfterRun ...
