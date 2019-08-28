@@ -16,8 +16,8 @@ var log = trait.NewZapSugar()
 type ThreadRun interface {
 	Runnable
 	Pusher
-	BeforeRun(seed Seeder)
-	AfterRun(seed Seeder)
+	BeforeRun(thread Threader)
+	AfterRun(thread Threader)
 }
 
 // ThreadBase ...
