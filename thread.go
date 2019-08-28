@@ -12,6 +12,38 @@ import (
 
 var log = trait.NewZapSugar()
 
+// ThreadRun ...
+type ThreadRun interface {
+	Runnable
+	Pusher
+	BeforeRun(seed Seeder)
+	AfterRun(seed Seeder)
+}
+
+// ThreadBase ...
+type ThreadBase interface {
+	State() State
+	SetState(state State)
+	Done() <-chan bool
+	Finished()
+}
+
+// Threader ...
+type Threader interface {
+	ThreadRun
+	ThreadBase
+}
+
+// Runnable ...
+type Runnable interface {
+	Run(context.Context)
+}
+
+// Pusher ...
+type Pusher interface {
+	Push(interface{}) error
+}
+
 // State ...
 type State int
 
@@ -21,9 +53,6 @@ const (
 	StateRunning
 	StateStop
 )
-
-type Threader interface {
-}
 
 type CallAble interface {
 	Call(*Thread, interface{}) error
@@ -35,6 +64,7 @@ type PushFunc func(interface{})
 // Thread ...
 type Thread struct {
 	Threader
+	id       string
 	interval time.Duration
 	push     PushFunc
 	state    *int32
@@ -102,6 +132,10 @@ func (t *Thread) AfterRun(thread Threader) {
 // State ...
 func (t *Thread) State() State {
 	return State(atomic.LoadInt32(t.state))
+}
+
+func (t *Thread) ID() string {
+	return t.id
 }
 
 // Done ...
