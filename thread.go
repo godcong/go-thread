@@ -31,6 +31,7 @@ type Thread struct {
 	push     PushFunc
 	state    *atomic.Int32
 	done     chan bool
+	cb interface{}
 }
 
 // Finished ...
@@ -60,8 +61,8 @@ ThreadEnd:
 			m.SetState(StateWaiting)
 		}
 	}
-	close(m.cb)
-	m.Finished()
+	close(t.cb)
+	t.Finished()
 }
 
 // SetState ...
