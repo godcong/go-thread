@@ -4,9 +4,13 @@ import (
 	"context"
 	"time"
 
-	"go.uber.org/atomic"
+	"sync/atomic"
+
+	"github.com/godcong/go-trait"
 	"golang.org/x/xerrors"
 )
+
+var log = trait.NewZapSugar()
 
 // State ...
 type State int
@@ -21,17 +25,22 @@ const (
 type Threader interface {
 }
 
+type CallAble interface {
+	Call(*Thread, interface{}) error
+}
+
 // PushFunc ...
-type PushFunc func(interface{}) error
+type PushFunc func(interface{})
 
 // Thread ...
 type Thread struct {
 	Threader
 	interval time.Duration
 	push     PushFunc
-	state    *atomic.Int32
+	state    *int32
 	done     chan bool
-	cb interface{}
+	cb       chan CallAble
+	call     CallAble
 }
 
 // Finished ...
@@ -52,13 +61,13 @@ ThreadEnd:
 				break ThreadEnd
 			}
 			t.SetState(StateRunning)
-			e := cb.Call(m)
+			e := cb.Call(t)
 			if e != nil {
 				log.Error(e)
 			}
 		case <-time.After(t.interval):
 			log.Info("info time out")
-			m.SetState(StateWaiting)
+			t.SetState(StateWaiting)
 		}
 	}
 	close(t.cb)
@@ -67,13 +76,16 @@ ThreadEnd:
 
 // SetState ...
 func (t *Thread) SetState(state State) {
-	t.state.Store(int32(state))
+	atomic.StoreInt32(t.state, int32(state))
 }
 
 // Push ...
 func (t *Thread) Push(v interface{}) error {
 	if t.push != nil {
-		return t.push(v)
+		go func(p PushFunc, v interface{}) {
+			p(v)
+		}(t.push, v)
+		return nil
 	}
 	return xerrors.New("null push function")
 }
@@ -89,7 +101,7 @@ func (t *Thread) AfterRun(thread Threader) {
 
 // State ...
 func (t *Thread) State() State {
-	return State(t.state.Load())
+	return State(atomic.LoadInt32(t.state))
 }
 
 // Done ...
@@ -98,9 +110,11 @@ func (t *Thread) Done() <-chan bool {
 }
 
 // NewThread ...
-func NewThread() *Thread {
+func NewThread(call CallAble) *Thread {
+	state := int32(StateWaiting)
 	return &Thread{
-		state: atomic.NewInt32(int32(StateWaiting)),
+		state: (*int32)(&state),
 		done:  make(chan bool),
+		call:  call,
 	}
 }
