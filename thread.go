@@ -26,7 +26,7 @@ type Runner interface {
 type Basic interface {
 	SetInterval(duration time.Duration)
 	Interval() time.Duration
-	ID() string
+
 	Manager() Manager
 }
 
@@ -44,6 +44,7 @@ type Threader interface {
 	Runner
 	Basic
 	Pusher
+	ID() string
 }
 
 // CallAble ...

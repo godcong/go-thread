@@ -18,7 +18,7 @@ type Manager interface {
 	Stop()
 	PushTo(id string, v interface{}) error
 	GetThread(id string) Threader
-	SetThread(id string, threader Threader)
+	AddThread(threader Threader)
 	HasThread(id string) bool
 	Register(ops ...Options)
 }
@@ -103,8 +103,8 @@ func (m *Manage) GetThread(id string) Threader {
 }
 
 // SetThread ...
-func (m *Manage) SetThread(id string, threader Threader) {
-	m.threaders[id] = threader
+func (m *Manage) AddThread(threader Threader) {
+	m.threaders[threader.ID()] = threader
 }
 
 // HasThread ...
