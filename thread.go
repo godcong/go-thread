@@ -78,6 +78,8 @@ type PushFunc func(interface{})
 // Thread ...
 type Thread struct {
 	manager  Manager
+	ctx      context.Context
+	cancel   context.CancelFunc
 	id       string
 	interval time.Duration
 	state    *int32
@@ -105,6 +107,19 @@ func (t *Thread) Interval() time.Duration {
 func (t *Thread) Finished() {
 	t.SetState(StateStop)
 	t.done <- true
+}
+
+func (t *Thread) Start() {
+	t.ctx, t.cancel = context.WithCancel(context.Background())
+	go func(ctx context.Context) {
+		t.Run(ctx)
+	}(t.ctx)
+}
+
+func (t *Thread) Stop() {
+	if t.cancel != nil {
+		t.cancel()
+	}
 }
 
 // Run ...

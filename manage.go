@@ -18,7 +18,7 @@ type Manager interface {
 	Stop()
 	PushTo(id string, v interface{}) error
 	GetThread(id string) Threader
-	AddThread(threader Threader)
+	AddThread(threader Threader) string
 	HasThread(id string) bool
 	Register(ops ...Options)
 }
@@ -32,14 +32,7 @@ type Manage struct {
 
 // Start ...
 func (m *Manage) Start() {
-	m.ctx, m.cancel = context.WithCancel(context.Background())
-	for i := range m.threaders {
-		m.threaders[i].BeforeRun(m)
-		go func(manager Manager, ctx context.Context) {
-			m.threaders[i].Run(ctx)
-			m.threaders[i].AfterRun(manager)
-		}(m, m.ctx)
-	}
+
 }
 
 // Wait ...
@@ -103,8 +96,8 @@ func (m *Manage) GetThread(id string) Threader {
 }
 
 // SetThread ...
-func (m *Manage) AddThread(threader Threader) {
-	m.threaders[threader.ID()] = threader
+func (m *Manage) AddThread(threader interface{}) {
+
 }
 
 // HasThread ...
@@ -124,11 +117,5 @@ func (m *Manage) Register(ops ...Options) {
 // manager is not always thread safe
 // so all register need before running
 func NewManager(ts ...Threader) Manager {
-	m := &Manage{
-		threaders: make(map[string]Threader),
-	}
-	for i, t := range ts {
-		m.threaders[t.ID()] = ts[i]
-	}
-	return m
+	return nil
 }
